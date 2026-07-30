@@ -1,0 +1,19 @@
+name: chunk-trimming
+version: ${version}
+main: de.florianreuth.chunktrimming.ChunkTrimming
+description: ${description}
+authors: [ Florian Reuth ]
+website: https://github.com/florianreuth/chunk-trimming
+api-version: '1.21'
+folia-supported: true
+
+commands:
+  chunktrimming:
+    description: Shows how many chunk writes are being skipped.
+    usage: /chunktrimming
+    permission: chunktrimming.command
+
+permissions:
+  chunktrimming.command:
+    description: Allows using /chunktrimming.
+    default: op

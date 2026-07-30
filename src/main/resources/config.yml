@@ -1,0 +1,6 @@
+# Chunks within this radius (in chunks) around a player are written to disk when they unload.
+# 1 keeps the 3x3 around a player and is the lowest value that still covers their reach, 2 keeps 5x5.
+save-radius: 2
+
+# Worlds that are never trimmed.
+excluded-worlds: [ ]
