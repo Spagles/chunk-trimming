@@ -45,11 +45,13 @@ public final class ChunkTrimmingCommand implements CommandExecutor {
         final long keptByVisit = this.service.keptByVisit();
         final long keptByModification = this.service.keptByModification();
         final long keptByContainerEntity = this.service.keptByContainerEntity();
-        final long total = trimmed + keptByVisit + keptByModification + keptByContainerEntity;
+        final long keptByExistingData = this.service.keptByExistingData();
+        final long total = trimmed + keptByVisit + keptByModification + keptByContainerEntity + keptByExistingData;
         final double ratio = total == 0L ? 0.0D : trimmed * 100.0D / total;
 
         sender.sendMessage(text("Chunk Trimming", NamedTextColor.AQUA));
         sender.sendMessage(entry("Skipped writes", String.format(Locale.ROOT, "%,d (%.1f%%)", trimmed, ratio)));
+        sender.sendMessage(entry("Saved by existing data", String.format(Locale.ROOT, "%,d", keptByExistingData)));
         sender.sendMessage(entry("Saved by radius " + this.behavior.saveRadius(), String.format(Locale.ROOT, "%,d", keptByVisit)));
         sender.sendMessage(entry("Saved by modification", String.format(Locale.ROOT, "%,d", keptByModification)));
         sender.sendMessage(entry("Saved by container entity", String.format(Locale.ROOT, "%,d", keptByContainerEntity)));

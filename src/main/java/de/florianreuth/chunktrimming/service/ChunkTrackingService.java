@@ -21,6 +21,7 @@ package de.florianreuth.chunktrimming.service;
 import de.florianreuth.chunktrimming.configuration.TrimmingBehavior;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -32,7 +33,9 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Vehicle;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
+import org.bukkit.event.world.WorldSaveEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.inventory.InventoryHolder;
 
@@ -40,11 +43,13 @@ public final class ChunkTrackingService implements Listener {
 
     private final TrimmingBehavior behavior;
     private final Map<UUID, Map<Long, MarkReason>> markedChunks = new ConcurrentHashMap<>();
+    private final Map<UUID, Set<Long>> generatedChunks = new ConcurrentHashMap<>();
 
     private final AtomicLong trimmedWrites = new AtomicLong();
     private final AtomicLong keptByVisit = new AtomicLong();
     private final AtomicLong keptByModification = new AtomicLong();
     private final AtomicLong keptByContainerEntity = new AtomicLong();
+    private final AtomicLong keptByExistingData = new AtomicLong();
 
     public ChunkTrackingService(final TrimmingBehavior behavior) {
         this.behavior = behavior;
@@ -69,12 +74,33 @@ public final class ChunkTrackingService implements Listener {
     }
 
     @EventHandler
+    public void onChunkLoad(final ChunkLoadEvent event) {
+        final World world = event.getWorld();
+        if (!event.isNewChunk() || this.behavior.isExcluded(world)) {
+            return;
+        }
+
+        final Chunk chunk = event.getChunk();
+        final Set<Long> chunks = this.generatedChunks.computeIfAbsent(world.getUID(), key -> ConcurrentHashMap.newKeySet());
+        chunks.add(chunkKey(chunk.getX(), chunk.getZ()));
+    }
+
+    @EventHandler
     public void onChunkUnload(final ChunkUnloadEvent event) {
         final Chunk chunk = event.getChunk();
         final World world = event.getWorld();
         final MarkReason reason = this.unmark(world, chunk.getX(), chunk.getZ());
+        final boolean generated = this.unmarkGenerated(world, chunk.getX(), chunk.getZ());
 
         if (this.behavior.isExcluded(world) || !event.isSaveChunk()) {
+            return;
+        }
+
+        // A chunk that came from disk already holds state this plugin cannot see, so skipping its write would
+        // roll it back to whatever the region file still contains. Only chunks generated since the last save
+        // have nothing to lose, because they can be regenerated from the seed.
+        if (!generated) {
+            this.keptByExistingData.incrementAndGet();
             return;
         }
 
@@ -100,8 +126,15 @@ public final class ChunkTrackingService implements Listener {
     }
 
     @EventHandler
+    public void onWorldSave(final WorldSaveEvent event) {
+        // Everything that was still loaded has been written to disk now, so those chunks are no longer new.
+        this.generatedChunks.remove(event.getWorld().getUID());
+    }
+
+    @EventHandler
     public void onWorldUnload(final WorldUnloadEvent event) {
         this.markedChunks.remove(event.getWorld().getUID());
+        this.generatedChunks.remove(event.getWorld().getUID());
     }
 
     public long trimmedWrites() {
@@ -118,6 +151,10 @@ public final class ChunkTrackingService implements Listener {
 
     public long keptByContainerEntity() {
         return this.keptByContainerEntity.get();
+    }
+
+    public long keptByExistingData() {
+        return this.keptByExistingData.get();
     }
 
     public int trackedChunks() {
@@ -144,6 +181,11 @@ public final class ChunkTrackingService implements Listener {
     private MarkReason unmark(final World world, final int chunkX, final int chunkZ) {
         final Map<Long, MarkReason> chunks = this.markedChunks.get(world.getUID());
         return chunks == null ? null : chunks.remove(chunkKey(chunkX, chunkZ));
+    }
+
+    private boolean unmarkGenerated(final World world, final int chunkX, final int chunkZ) {
+        final Set<Long> chunks = this.generatedChunks.get(world.getUID());
+        return chunks != null && chunks.remove(chunkKey(chunkX, chunkZ));
     }
 
     private static boolean holdsContainerEntity(final Chunk chunk) {

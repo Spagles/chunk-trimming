@@ -4,7 +4,10 @@ Cuts chunk writes on Paper servers by saving only chunks a player has visited.
 
 ## How it works
 
-A chunk will only be saved on unload if a player was within the `save-radius`, or if something they set in motion
+Only chunks that were freshly generated and have not been written to disk yet are considered, so anything a world
+already holds stays untouched.
+
+Such a chunk will only be saved on unload if a player was within the `save-radius`, or if something they set in motion
 reached into it, e.g. pistons, dispensers, falling blocks, explosions, projectiles or spawned entities. Everything else
 is skipped and regenerates from the seed on its next load.
 
