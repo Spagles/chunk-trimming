@@ -75,13 +75,11 @@ public final class ChunkTrackingService implements Listener {
     @EventHandler
     public void onChunkLoad(final ChunkLoadEvent event) {
         final World world = event.getWorld();
-        if (!event.isNewChunk() || this.behavior.isExcluded(world)) {
-            return;
+        if (event.isNewChunk() && !this.behavior.isExcluded(world)) {
+            final Chunk chunk = event.getChunk();
+            final Set<Long> chunks = this.generatedChunks.computeIfAbsent(world.getUID(), key -> ConcurrentHashMap.newKeySet());
+            chunks.add(chunkKey(chunk.getX(), chunk.getZ()));
         }
-
-        final Chunk chunk = event.getChunk();
-        final Set<Long> chunks = this.generatedChunks.computeIfAbsent(world.getUID(), key -> ConcurrentHashMap.newKeySet());
-        chunks.add(chunkKey(chunk.getX(), chunk.getZ()));
     }
 
     @EventHandler
