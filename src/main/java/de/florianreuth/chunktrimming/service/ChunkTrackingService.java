@@ -30,14 +30,14 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.Vehicle;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
+import org.bukkit.event.world.EntitiesUnloadEvent;
 import org.bukkit.event.world.WorldSaveEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
-import org.bukkit.inventory.InventoryHolder;
 
 public final class ChunkTrackingService implements Listener {
 
@@ -48,7 +48,6 @@ public final class ChunkTrackingService implements Listener {
     private final AtomicLong trimmedWrites = new AtomicLong();
     private final AtomicLong keptByVisit = new AtomicLong();
     private final AtomicLong keptByModification = new AtomicLong();
-    private final AtomicLong keptByContainerEntity = new AtomicLong();
     private final AtomicLong keptByExistingData = new AtomicLong();
 
     public ChunkTrackingService(final TrimmingBehavior behavior) {
@@ -114,15 +113,23 @@ public final class ChunkTrackingService implements Listener {
             return;
         }
 
-        // Paper writes entity data even when the chunk write is skipped, so a container vehicle would
-        // keep its items while the block containers it traded with fall back to their state on disk.
-        if (holdsContainerEntity(chunk)) {
-            this.keptByContainerEntity.incrementAndGet();
-            return;
-        }
-
         event.setSaveChunk(false);
         this.trimmedWrites.incrementAndGet();
+    }
+
+    @EventHandler
+    public void onEntitiesUnload(final EntitiesUnloadEvent event) {
+        final Chunk chunk = event.getChunk();
+
+        // Entities are saved separately from the chunk, so they would outlive its skipped write and return into a
+        // chunk that regenerates its own ones alongside them, leaving everything twice.
+        if (this.isDiscarded(event.getWorld(), chunk.getX(), chunk.getZ())) {
+            for (final Entity entity : event.getEntities()) {
+                if (!(entity instanceof Player)) {
+                    entity.remove();
+                }
+            }
+        }
     }
 
     @EventHandler
@@ -147,10 +154,6 @@ public final class ChunkTrackingService implements Listener {
 
     public long keptByModification() {
         return this.keptByModification.get();
-    }
-
-    public long keptByContainerEntity() {
-        return this.keptByContainerEntity.get();
     }
 
     public long keptByExistingData() {
@@ -188,18 +191,19 @@ public final class ChunkTrackingService implements Listener {
         return chunks != null && chunks.remove(chunkKey(chunkX, chunkZ));
     }
 
-    private static boolean holdsContainerEntity(final Chunk chunk) {
-        if (!chunk.isEntitiesLoaded()) {
+    private boolean isDiscarded(final World world, final int chunkX, final int chunkZ) {
+        if (this.behavior.isExcluded(world)) {
             return false;
         }
 
-        for (final Entity entity : chunk.getEntities()) {
-            if (entity instanceof Vehicle && entity instanceof InventoryHolder) {
-                return true;
-            }
+        final long key = chunkKey(chunkX, chunkZ);
+        final Set<Long> generated = this.generatedChunks.get(world.getUID());
+        if (generated == null || !generated.contains(key)) {
+            return false;
         }
 
-        return false;
+        final Map<Long, MarkReason> marked = this.markedChunks.get(world.getUID());
+        return marked == null || !marked.containsKey(key);
     }
 
     private static long chunkKey(final int chunkX, final int chunkZ) {

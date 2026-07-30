@@ -13,11 +13,6 @@ is skipped and regenerates from the seed on its next load.
 
 You can use `/chunktrimming` to show skipped and kept chunks.
 
-## Limitations
-
-Paper writes entity data in separate region files, so only block data reverts. Chunks holding a hopper or chest minecart
-are kept. This also means that ender pearl chunk trails are no longer visible.
-
 ## Downloads
 
 You can download the latest jar file
