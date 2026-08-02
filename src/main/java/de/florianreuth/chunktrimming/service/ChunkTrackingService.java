@@ -120,6 +120,12 @@ public final class ChunkTrackingService implements Listener {
             return;
         }
 
+        for (final Entity entity : chunk.getEntities()) {
+            if (!(entity instanceof Player)) {
+                entity.remove();
+            }
+        }
+
         event.setSaveChunk(false);
         this.trimmedWrites.incrementAndGet();
     }
