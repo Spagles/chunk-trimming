@@ -91,6 +91,9 @@ public final class PlayerActivityListener implements Listener {
     }
 
     private void markAround(final Location location) {
+        if (location == null || location.getWorld() == null) {
+            return;
+        }
         final int radius = this.behavior.saveRadius();
         final int chunkX = location.getBlockX() >> 4;
         final int chunkZ = location.getBlockZ() >> 4;
