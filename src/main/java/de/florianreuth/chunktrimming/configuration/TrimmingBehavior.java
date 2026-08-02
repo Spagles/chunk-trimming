@@ -42,7 +42,7 @@ public final class TrimmingBehavior {
     }
 
     public boolean isExcluded(final World world) {
-        return this.excludedWorlds.contains(world.getName().toLowerCase(Locale.ROOT));
+        return world == null || this.excludedWorlds.contains(world.getName().toLowerCase(Locale.ROOT));
     }
 
 }
