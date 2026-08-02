@@ -59,14 +59,23 @@ public final class ChunkTrackingService implements Listener {
     }
 
     public void markModified(final Block block) {
+        if (block == null) {
+            return;
+        }
         this.mark(block.getWorld(), block.getX() >> 4, block.getZ() >> 4, MarkReason.MODIFIED);
     }
 
     public void markModified(final Location location) {
+        if (location == null) {
+            return;
+        }
         this.mark(location.getWorld(), location.getBlockX() >> 4, location.getBlockZ() >> 4, MarkReason.MODIFIED);
     }
 
     public void markModifiedBlocks(final Collection<Block> blocks) {
+        if (blocks == null) {
+            return;
+        }
         for (final Block block : blocks) {
             this.markModified(block);
         }
