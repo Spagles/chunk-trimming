@@ -2,7 +2,7 @@
 
 Cuts chunk writes on Paper servers by saving only chunks a player has visited.
 
-## How it works
+## Terminology
 
 Only chunks that were freshly generated and have not been written to disk yet are considered, so anything a world
 already holds stays untouched.
@@ -13,15 +13,21 @@ is skipped and regenerates from the seed on its next load.
 
 You can use `/chunktrimming` to show skipped and kept chunks.
 
-## Downloads
+## Setup
 
-You can download the latest jar file
-from [my build server](https://build.florianreuth.de/job/chunk-trimming), [GitHub Actions](https://github.com/florianreuth/chunk-trimming/actions)
-or use the [releases tab](https://github.com/florianreuth/chunk-trimming/releases).
+- Paper (or Folia) 1.21+.
+- Java 21+.
+
+On startup, the plugin will create a configuration file in `plugins/chunk-trimming/config.yml` where the radius can be
+set.
+
+## Links
+
+- Modrinth: https://modrinth.com/mod/chunk-trimming
+- Hangar: https://hangar.papermc.io/EnZaXD/chunk-trimming
+- Dev builds: https://build.florianreuth.de/job/chunk-trimming
 
 ## Contact
 
-If you encounter any issues, please report them on the
-[issue tracker](https://github.com/florianreuth/chunk-trimming/issues). If you just want to talk or need help with
-chunk-trimming, feel free to join my
-[Discord](http://florianreuth.de/discord).
+- Issues: https://github.com/florianreuth/chunk-trimming/issues
+- Discord: https://florianreuth.de/discord
